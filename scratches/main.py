@@ -5,6 +5,14 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 import tkinter as tk
+from dataclasses import dataclass
+
+@dataclass
+class PcapFile:
+    file_path: str
+    toggle_var: tk.BooleanVar
+    title: str
+    int_type: str
 
 class App:
     def __init__(self, root):
@@ -17,14 +25,18 @@ class App:
         self.side_menu.pack(side='left', fill='both')
         self.side_menu.update()
 
-        self.dumps_elements = ['aaaaaaaaaa', 'bbbbbbbbbbbbbbb']
+        demo1 = PcapFile("demo1.pcap", tk.BooleanVar(), "demo1", "DEMO")
+        demo2 = PcapFile("demo2.pcap", tk.BooleanVar(), "demo2", "DEMO")
+        self.pcap_files = [demo1, demo2]
+
+        self.file_path_selected = None
+        self.selected_int_type = None
 
         # Split side menu into three equal parts
         self.side_menu_height = self.side_menu.winfo_height() / 3
         self._create_top_side_menu()
         self._create_middle_side_menu()
         self._create_bottom_side_menu()
-        
 
     def _create_top_side_menu(self):
         self.side_menu_top = tk.Frame(self.side_menu, width=400, height=self.side_menu_height, bg='grey', relief='raised', bd=2)
@@ -40,7 +52,8 @@ class App:
 
         # Add a drop down menu
         dropdown_options = ["DINT", "PINT"]
-        drop_down_menu = tk.OptionMenu(self.side_menu_top, tk.StringVar(value="Select the type of INT"), *dropdown_options)
+        self.selected_int_type = tk.StringVar(value="Select the type of INT")
+        drop_down_menu = tk.OptionMenu(self.side_menu_top, self.selected_int_type, *dropdown_options)
         drop_down_menu.pack(side='top', fill='both', padx=10, pady=10)
 
         # Create an add button
@@ -48,13 +61,24 @@ class App:
         add_button.pack(side='top', fill='both', padx=40, pady=10)
 
     def select_file(self):
-        file_path = tk.filedialog.askopenfilename()
-        self.file_selector_button.config(text=file_path)
+        self.file_path_selected = tk.filedialog.askopenfilename()
+        self.file_selector_button.config(text=self.file_path_selected)
         print(file_path)
 
     def add_pcap_button(self):
         print("Add button pressed")
-        self.dumps_elements.append("new element")
+        if self.file_path_selected is None:
+            print("No file selected")
+            return
+        if self.selected_int_type.get() == "Select the type of INT":
+            print("No INT type selected")
+            return
+
+        path = self.file_path_selected
+        title = path.split("/")[-1]
+        int_type = self.selected_int_type.get()
+
+        self.pcap_files.append(PcapFile(path, tk.BooleanVar(), title, int_type))
         self.redraw_middle_menu_side()
 
     def _create_middle_side_menu(self):
@@ -66,12 +90,10 @@ class App:
         label.pack(side='top', pady=10)
 
         # Create toggle buttons for each line
-        self.toggle_vars = []
-        for line in self.dumps_elements:
+        for line in self.pcap_files:
             toggle_var = tk.BooleanVar()
-            toggle_button = tk.Checkbutton(self.side_menu_middle, text=line, variable=toggle_var, onvalue=True, offvalue=False, bg='grey', command=self.toggle_button)
+            toggle_button = tk.Checkbutton(self.side_menu_middle, text=line.title, variable=line.toggle_var, onvalue=True, offvalue=False, bg='grey', command=self.toggle_button)
             toggle_button.pack(anchor='w')
-            self.toggle_vars.append(toggle_var)
 
     def redraw_middle_menu_side(self):
         self.side_menu_middle.destroy()
@@ -81,8 +103,8 @@ class App:
 
     def toggle_button(self):
         print("toggle button pressed")
-        for val in self.toggle_vars:
-            print(val.get())
+        for file in self.pcap_files:
+            print(file.toggle_var.get())
 
     def _create_bottom_side_menu(self):
         self.side_menu_bottom = tk.Frame(self.side_menu, width=400, height=self.side_menu_height, bg='grey', relief='raised', bd=2)
