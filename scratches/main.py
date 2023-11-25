@@ -129,11 +129,29 @@ class App:
 				x = np.linspace(0, len(delays), len(delays))
 				self.add_to_plot(x, delays, label=file.title)
 
+				print(delays[0:10])
+
 	def get_delays_from_pcap(self, pcap_file):
 		delays = []
 		for packet in PcapReader(pcap_file):
+			if packet.getlayer(layers.inet.TCP) is None:
+				continue
+
 			for option in packet.getlayer(layers.inet.TCP).options:
 				if option[0] == 114:  # hex 0x72
+					values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
+
+					kind = option[0]
+					switch_id = int(values[0:4], 16)
+					delay = int(values[4:20], 16)
+
+					if switch_id == 0:
+						continue
+
+					delays.append(delay)
+
+				elif option[0] == 132:  # hex 0x84
+					# TODO: check this
 					values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
 
 					kind = option[0]
