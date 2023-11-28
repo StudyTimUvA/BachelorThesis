@@ -16,6 +16,7 @@ class PcapFile:
 	toggle_var: tk.BooleanVar
 	title: str
 	int_type: str
+	series: np.array = None
 
 class App:
 	def __init__(self, root):
@@ -31,9 +32,10 @@ class App:
 		self.side_menu.pack(side='left', fill='both')
 		self.side_menu.update()
 
-		demo1 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/dlint_1_flow/5mbps.pcap", tk.BooleanVar(), "dlint 5mbps", "dlint")
-		demo2 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/plint_1_flow/5mbps.pcap", tk.BooleanVar(), "plint 5mbps", "plint")
-		self.pcap_files = [demo1, demo2]
+		demo1 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/dlint_1_flow/5mbps.pcap", tk.BooleanVar(), "dlint 5mbps", "DLINT")
+		demo2 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/plint_1_flow/5mbps.pcap", tk.BooleanVar(), "plint 5mbps", "PLINT")
+		demo3 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/forw_1_flow/5mbps.pcap", tk.BooleanVar(), "forw 5mbps", "FORW")
+		self.pcap_files = [demo1, demo2, demo3]
 
 		self.file_path_selected = None
 		self.selected_int_type = None
@@ -66,7 +68,7 @@ class App:
 		self.file_selector_button.pack(side='top', fill='both', padx=10, pady=10)
 
 		# Add a drop down menu
-		dropdown_options = ["DINT", "PINT"]
+		dropdown_options = ["DINT", "PINT", "FORW"]
 		self.selected_int_type = tk.StringVar(value="Select the type of INT")
 		drop_down_menu = tk.OptionMenu(self.side_menu_top, self.selected_int_type, *dropdown_options)
 		drop_down_menu.pack(side='top', fill='both', padx=10, pady=10)
@@ -117,19 +119,24 @@ class App:
 		self._create_bottom_side_menu()
 
 	def toggle_button(self):
-		print("toggle button pressed")
-
 		# Clear the plot
 		self.plot.clear()
 
 		for file in self.pcap_files:
 			if file.toggle_var.get():
 				# Draw the file
-				delays = self.get_delays_from_pcap(file.file_path)
+				if file.series is None:
+					delays = self.get_delays_from_pcap(file.file_path)
+					file.series = np.array(delays)
+				else:
+					delays = file.series
+
 				x = np.linspace(0, len(delays), len(delays))
 				self.add_to_plot(x, delays, label=file.title)
 
 				print(delays[0:10])
+
+		self.canvas.draw()
 
 	def get_delays_from_pcap(self, pcap_file):
 		delays = []
@@ -145,7 +152,7 @@ class App:
 					switch_id = int(values[0:4], 16)
 					delay = int(values[4:20], 16)
 
-					if switch_id == 0:
+					if switch_id == 0 and delay == 0:
 						continue
 
 					delays.append(delay)
@@ -156,7 +163,8 @@ class App:
 
 					kind = option[0]
 					switch_id = int(values[0:4], 16)
-					delay = int(values[4:20], 16)
+					# TODO: In the email it says that the delay is 4:20, but that is not correct
+					delay = int(values[12:20], 16)
 
 					if switch_id == 0:
 						continue

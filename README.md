@@ -1,4 +1,4 @@
 # BachelorThesis
 
 ## Current status of the project
-![Alt text](image.png)
+![Current state of interface](current_state.png)
