@@ -121,6 +121,7 @@ class App:
 	def toggle_button(self):
 		# Clear the plot
 		self.plot.clear()
+		self.plot2.clear()
 
 		for file in self.pcap_files:
 			if file.toggle_var.get():
@@ -173,14 +174,11 @@ class App:
 
 		return delays
 
-	def _create_bottom_side_menu(self):
-		self.side_menu_bottom = tk.Frame(self.side_menu, width=400, height=self.side_menu_height, bg='grey', relief='raised', bd=2)
-		self.side_menu_bottom.pack(side='top', fill='both')
-
 	def _add_plot_to_view(self):
 		# Create a figure
 		self.figure = Figure(figsize=(5, 5), dpi=100)
-		self.plot = self.figure.add_subplot(111)
+		self.plot = self.figure.add_subplot(121)
+		self.plot2 = self.figure.add_subplot(122)
 
 		# Create a canvas
 		self.canvas = FigureCanvasTkAgg(self.figure, self.root)
@@ -193,11 +191,35 @@ class App:
 		self.canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
 
 	def add_to_plot(self, x, y, label=None):
+		# if self.radio_options[self.radio_var.get()] == "Delays":
 		self.plot.plot(x, y, label=label)
+		# elif self.radio_options[self.radio_var.get()] == "ECDF":
+		x = np.sort(y)
+		y = np.arange(1, len(x) + 1) / len(x)
+		self.plot2.plot(x, y, label=label)
+		# else:
+		# 	print("Unknown radio option")
+	
 		self.plot.legend()
+		self.plot2.legend()
 		self.canvas.draw()
 
+	def _create_bottom_side_menu(self):
+		self.side_menu_bottom = tk.Frame(self.side_menu, width=400, height=self.side_menu_height, bg='grey', relief='raised', bd=2)
+		self.side_menu_bottom.pack(side='top', fill='both')
 
+		# Add radio buttons
+		self.radio_options = ["Delays", "ECDF"]
+		self.radio_var = tk.IntVar()
+		self.radio_var.set(0)
+
+		for i, option in enumerate(self.radio_options):
+			radio_button = tk.Radiobutton(self.side_menu_bottom, text=option, variable=self.radio_var, value=i, command=self.radio_button)
+			radio_button.pack(anchor='w')
+
+	def radio_button(self):
+		print(self.radio_var.get())
+		print(self.radio_options[self.radio_var.get()])
 
 root = tk.Tk()
 app = App(root)
