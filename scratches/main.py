@@ -164,7 +164,6 @@ class App:
 
 					kind = option[0]
 					switch_id = int(values[0:4], 16)
-					# TODO: In the email it says that the delay is 4:20, but that is not correct
 					delay = int(values[12:20], 16)
 
 					if switch_id == 0:
