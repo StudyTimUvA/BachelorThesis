@@ -112,6 +112,29 @@ class App:
 			toggle_button = tk.Checkbutton(self.side_menu_middle, text=line.title, variable=line.toggle_var, onvalue=True, offvalue=False, bg='grey', command=self.toggle_button)
 			toggle_button.pack(anchor='w')
 
+			def remove_line(line):
+				self.pcap_files.remove(line)
+				self.redraw_middle_menu_side()
+
+			# add remove button next to it, with a thrashcan icon
+			remove_button = tk.Button(self.side_menu_middle, text="remove", command=lambda line=line: remove_line(line))
+			remove_button.pack(anchor='nw')
+
+			def rename_line(line):
+				new_title = tk.simpledialog.askstring("Rename", "Enter new name")
+				if new_title is not None:
+					line.title = new_title
+					self.redraw_middle_menu_side()
+
+			# Add a rename button next to it, with a pencil icon
+			rename_button = tk.Button(self.side_menu_middle, text="rename", command=lambda line=line: rename_line(line))
+			rename_button.pack(anchor='nw')
+
+			# Add a separator
+			separator = tk.Frame(self.side_menu_middle, height=2, bd=1, relief='sunken')
+			separator.pack(fill='x', padx=5, pady=5)
+
+
 	def redraw_middle_menu_side(self):
 		self.side_menu_middle.destroy()
 		self.side_menu_bottom.destroy()
@@ -217,6 +240,7 @@ class App:
 			radio_button.pack(anchor='w')
 
 	def radio_button(self):
+		# TODO: decide on some options to add
 		print(self.radio_var.get())
 		print(self.radio_options[self.radio_var.get()])
 
