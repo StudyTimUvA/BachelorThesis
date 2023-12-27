@@ -1,6 +1,9 @@
 from base_page import BasePage
 import tkinter as tk
 from tkinter import *
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
 
 class LiveMode(BasePage):
     def __init__(self, root, _):
@@ -29,13 +32,19 @@ class LiveMode(BasePage):
             font=("Inter Bold", 48 * -1)
         )
 
-        self.canvas.create_rectangle(
-            332.0,
-            216.0,
-            1442.0,
-            938.0,
-            fill="#FFFFFF",
-            outline="")
+        self.plot_figure = Figure(figsize=(10, 10), dpi=100)
+        self.plot = self.plot_figure.add_subplot(111)
+        self.plot_canvas = FigureCanvasTkAgg(self.plot_figure, master=self.root)
+        self.plot_canvas.draw()
+        self.plot_canvas.get_tk_widget().place(x=332.0, y=216.0, width=1110.0, height=722.0)
+
+        # self.toolbar = NavigationToolbar2Tk(self.plot_canvas, self.root)
+        # self.toolbar.update()
+        # self.plot_canvas.get_tk_widget().grid(row=1, column=0, padx=10, pady=10)
+
+        self.plot.plot([1, 2, 3, 4, 5], [1, 2, 3, 4, 5], label="test")
+        self.plot.legend()
+        self.plot_canvas.draw()
 
         self.canvas.create_rectangle(
             0.0,
@@ -45,40 +54,50 @@ class LiveMode(BasePage):
             fill="#A8A6A6",
             outline="")
 
-        self.canvas.create_rectangle(
-            32.0,
-            75.0,
-            298.0,
-            131.0,
-            fill="#D9D9D9",
-            outline="")
-
-        self.canvas.create_text(
-            89.0,
-            90.0,
-            anchor="nw",
+        interface_button = tk.Button(
             text="Select Interface",
-            fill="#000000",
-            font=("Inter Medium", 20 * -1)
+            font=("Inter Medium", 20 * -1),
+            command=self._set_interface
+        )
+        interface_button.place(
+            x=32.0,
+            y=75.0,
+            width=266.0,
+            height=56.0
         )
 
-        self.canvas.create_rectangle(
-            32.0,
-            160.0,
-            298.0,
-            216.0,
-            fill="#D9D9D9",
-            outline="")
-
-        self.canvas.create_text(
-            89.0,
-            176.0,
-            anchor="nw",
+        sniffing_button = tk.Button(
             text="Sniffing Filter",
-            fill="#000000",
-            font=("Inter Medium", 20 * -1)
+            font=("Inter Medium", 20 * -1),
+            command=self._set_sniffing_filter
+        )
+        sniffing_button.place(
+            x=32.0,
+            y=160.0,
+            width=266.0,
+            height=56.0
         )
 
+    def _set_interface(self):
+        new_interface = tk.simpledialog.askstring(
+            title="Select Interface",
+            prompt="Enter the name of the interface you want to sniff on:"
+        )
+
+        if new_interface is not None:
+            self.interface_label.config(text=self.interface)
+            conf.iface = self.interface
+
+    def _set_sniffing_filter(self):
+        new_sniffing_filter = tk.simpledialog.askstring(
+            title="Sniffing Filter",
+            prompt="Enter the sniffing filter you want to use:"
+        )
+
+        if new_sniffing_filter is not None:
+            self.sniffing_filter_label.config(text=self.sniffing_filter)
+            self.sniffing_filter = new_sniffing_filter
+            # TODO: update sniffing filter
 
 if __name__ == "__main__":
     root = tk.Tk()

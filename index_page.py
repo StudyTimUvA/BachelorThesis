@@ -14,6 +14,7 @@ class IndexPage(BasePage):
         super().__init__(root)
 
         self.root.title("In-band Network Telemetry analysis")
+        self.controller = controller
 
         self.canvas = tk.Canvas(
             self.root,
@@ -153,7 +154,7 @@ class IndexPage(BasePage):
             image=self.button_1_image,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: controller.show_frame("pcap_mode"),
+            command=self.next_button_action,
             relief="flat"
         )
         button_1.place(
@@ -178,6 +179,12 @@ class IndexPage(BasePage):
             width=433.0,
             height=117.0
         )
+
+    def next_button_action(self):
+        if self.top_selected.get():
+            self.controller.show_frame("pcap_mode")
+        else:
+            self.controller.show_frame("live_mode")
 
 if __name__ == "__main__":
     root = tk.Tk()
