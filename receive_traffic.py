@@ -61,7 +61,7 @@ def process_packet(packet):
 sniffer = AsyncSniffer(prn=process_packet, store=0)
 sniffer.start()
 
-for i in range(20):
+for i in range(30):
     print(array)
     time.sleep(1)
 
