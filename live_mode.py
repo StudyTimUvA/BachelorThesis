@@ -4,6 +4,10 @@ from tkinter import *
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+from scapy.all import AsyncSniffer, conf, IP, TCP
+import time
+
+conf.iface="lo"
 
 class LiveMode(BasePage):
     def __init__(self, root, _):
@@ -42,9 +46,9 @@ class LiveMode(BasePage):
         # self.toolbar.update()
         # self.plot_canvas.get_tk_widget().grid(row=1, column=0, padx=10, pady=10)
 
-        self.plot.plot([1, 2, 3, 4, 5], [1, 2, 3, 4, 5], label="test")
-        self.plot.legend()
         self.plot_canvas.draw()
+        
+        self.data_points = []
 
         self.canvas.create_rectangle(
             0.0,
@@ -77,6 +81,9 @@ class LiveMode(BasePage):
             width=266.0,
             height=56.0
         )
+        
+        self.sniffer = AsyncSniffer(prn=self.update_plot, store=0)
+        self.sniffer.start()
 
     def _set_interface(self):
         new_interface = tk.simpledialog.askstring(
@@ -98,6 +105,50 @@ class LiveMode(BasePage):
             self.sniffing_filter_label.config(text=self.sniffing_filter)
             self.sniffing_filter = new_sniffing_filter
             # TODO: update sniffing filter
+            
+    def update_plot(self, packet):
+        if not packet.haslayer(IP):
+            return
+
+        if not packet.haslayer(TCP):
+            # print(f"No TCP layer, {packet[IP].src}>{packet[IP].dst}")
+            return
+
+        for option in packet.getlayer(TCP).options:
+            if option[0] == 114:
+                values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
+
+                switch_id = int(values[0:4], 16)
+                delay = int(values[4:20], 16)
+
+                if switch_id == 0 and delay == 0:
+                    continue
+
+                print(f"Switch ID: {switch_id}, delay: {delay}")
+                self.data_points.append(delay)
+                break
+
+            elif option[0] == 132:
+                values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
+                switch_id = int(values[0:4], 16)
+                delay = int(values[12:20], 16)
+
+                if switch_id == 0:
+                    continue
+
+                print(f"Switch ID: {switch_id}, delay: {delay}")
+                self.data_points.append(delay)
+                break
+            
+        if len(self.data_points) % 5 == 0:
+            print("Plotting")
+            self.plot.clear()
+            self.plot.plot(self.data_points, label="Delay")
+            print(self.data_points)
+            self.plot.legend()
+            self.plot_canvas.draw_idle()
+            self.plot_canvas.flush_events()
+            print("Plotted")
 
 if __name__ == "__main__":
     root = tk.Tk()
