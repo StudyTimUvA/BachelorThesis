@@ -10,11 +10,13 @@ import time
 conf.iface="lo"
 
 class LiveMode(BasePage):
-    def __init__(self, root, _):
+    def __init__(self, root, controller):
         super().__init__(root)
 
         self.root = root
         self.root.title("Live analysis for In-band Network Telemetry")
+        
+        self.controller = controller
 
         self.canvas = Canvas(
             self.root,
@@ -34,6 +36,18 @@ class LiveMode(BasePage):
             text="Live Evaluation",
             fill="#2E3440",
             font=("Inter Bold", 48 * -1)
+        )
+        
+        home_page_button = tk.Button(
+            text="Home",
+            font=("Inter Medium", 20 * -1),
+            command=lambda: self.controller.show_frame("index_page")
+        )
+        home_page_button.place(
+            x=5.0,
+            y=5.0,
+            width=100.0,
+            height=50.0
         )
 
         self.plot_figure = Figure(figsize=(10, 10), dpi=100)
@@ -82,6 +96,7 @@ class LiveMode(BasePage):
             height=56.0
         )
         
+        self.sniffing_filter = ""
         self.sniffer = AsyncSniffer(prn=self.update_plot, store=0)
         self.sniffer.start()
 
@@ -94,18 +109,24 @@ class LiveMode(BasePage):
         if new_interface is not None:
             self.interface_label.config(text=self.interface)
             conf.iface = self.interface
+            self.restart_sniffer()
 
     def _set_sniffing_filter(self):
         new_sniffing_filter = tk.simpledialog.askstring(
             title="Sniffing Filter",
-            prompt="Enter the sniffing filter you want to use:"
+            prompt="Enter the sniffing filter you want to use:",
+            initialvalue=self.sniffing_filter
         )
 
         if new_sniffing_filter is not None:
-            self.sniffing_filter_label.config(text=self.sniffing_filter)
             self.sniffing_filter = new_sniffing_filter
-            # TODO: update sniffing filter
-            
+            self.restart_sniffer()
+
+    def restart_sniffer(self):
+        self.sniffer.stop()
+        self.sniffer = AsyncSniffer(prn=self.update_plot, store=0, filter=self.sniffing_filter)
+        self.sniffer.start()
+
     def update_plot(self, packet):
         if not packet.haslayer(IP):
             return

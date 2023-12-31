@@ -19,8 +19,8 @@ class IndexPage(BasePage):
         self.canvas = tk.Canvas(
             self.root,
             bg="#d8dee9",
-            height=900,
-            width=1600,
+            height=1024,
+            width=1440,
             bd=0,
             highlightthickness=0,
             relief="ridge"

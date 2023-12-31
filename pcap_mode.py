@@ -11,10 +11,12 @@ from scapy.utils import PcapReader
 from scapy import layers
 
 class PcapMode(BasePage):
-	def __init__(self, root, _):
+	def __init__(self, root, controller):
 		super().__init__(root)
 		self.root = root
 		self.root.title("Pcap analysis for In-band Network Telemetry")
+  
+		self.controller = controller
 
 		self.dataframe = DataFrame()
 		self.dataframe_line_attributes = {}
@@ -44,6 +46,18 @@ class PcapMode(BasePage):
 			fill="#2E3440",
 			font=("Inter Bold", 48 * -1)
 		)
+  
+		home_page_button = tk.Button(
+			text="Home",
+			font=("Inter Medium", 20 * -1),
+			command=lambda: self.controller.show_frame("index_page")
+		)
+		home_page_button.place(
+			x=5.0,
+			y=5.0,
+			width=100.0,
+			height=50.0
+		)
 
 		self.plot_figure = Figure(figsize=(10, 10), dpi=100)
 		self.plot = self.plot_figure.add_subplot(111)
@@ -67,21 +81,20 @@ class PcapMode(BasePage):
 			fill="#A8A6A6",
 			outline="")
 
-		# button_image_1 = PhotoImage(
-		#     file=relative_to_assets("button_1.png"))
-		# button_1 = Button(
-		#     image=button_image_1,
-		#     borderwidth=0,
-		#     highlightthickness=0,
-		#     command=lambda: print("button_1 clicked"),
-		#     relief="flat"
-		# )
-		# button_1.place(
-		#     x=32.0,
-		#     y=32.0,
-		#     width=266.0,
-		#     height=56.0
-		# )
+		button_1 = Button(
+			text="Select Pcap",
+	  		font=("Inter Medium", 20 * -1),
+			borderwidth=0,
+			highlightthickness=0,
+			command=self.select_file_action,
+			relief="flat"
+		)
+		button_1.place(
+			x=32.0,
+			y=32.0,
+			width=266.0,
+			height=56.0
+		)
 
 		self.canvas.create_rectangle(
 			-2.0,
@@ -90,7 +103,10 @@ class PcapMode(BasePage):
 			117.0,
 			fill="#000000",
 			outline="")
+  
+		self.draw_side_menu_elements()
 
+	def draw_side_menu_elements(self):
 		# Place a frame for the above rectangles
 		self.frame = Frame(self.root)
 		self.frame.place(x=14.0, y=133.0, width=297.875, height=850.0)
@@ -99,8 +115,8 @@ class PcapMode(BasePage):
 			# TODO: align buttons
 			toggle_button = Checkbutton(self.frame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<45}',
 											variable=self.dataframe_line_attributes[file]["toggle_variable"],
-           									onvalue=True, offvalue=False,
-                    						command=self.update_plot)
+		   									onvalue=True, offvalue=False,
+											command=self.update_plot)
 			toggle_button.pack(anchor="n")
 
 			# add remove button, with a thrashcan icon
@@ -110,6 +126,15 @@ class PcapMode(BasePage):
 			# Add a rename button, with a pencil icon
 			rename_button = tk.Button(self.frame, image=self.rename_image, command=lambda file=file: self._rename_line(file))
 			rename_button.pack(anchor="n")
+
+	def select_file_action(self):
+		file_path = tk.filedialog.askopenfilename(initialdir=".", title="Select file",
+													filetypes=(("pcap files", "*.pcap"), ("all files", "*.*")))
+		if file_path:
+			self.add_pcap_file(file_path)
+			self.frame.destroy()
+			self.draw_side_menu_elements()
+   
 
 	def _remove_line(self, file):
 		self.dataframe = self.dataframe.drop(file, axis=1)
@@ -124,7 +149,7 @@ class PcapMode(BasePage):
 		self.dataframe[file_path] = ...
 
 		self.dataframe_line_attributes[file_path] = {
-			"toggle_variable": BooleanVar(value=True),
+			"toggle_variable": BooleanVar(value=False),
 			"title": file_path.split("/")[-1],
 		}
 
