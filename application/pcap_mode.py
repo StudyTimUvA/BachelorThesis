@@ -11,12 +11,15 @@ from scapy.utils import PcapReader
 from scapy import layers
 
 class PcapMode(BasePage):
-	def __init__(self, root, controller):
+	def __init__(self, root, controller, settings):
 		super().__init__(root)
 		self.root = root
 		self.root.title("Pcap analysis for In-band Network Telemetry")
   
+		print(settings)
+  
 		self.controller = controller
+		self.settings = settings
 
 		self.dataframe = DataFrame()
 		self.dataframe_line_attributes = {}
@@ -24,8 +27,8 @@ class PcapMode(BasePage):
 		self.add_pcap_file("tcpdump_logs/dlint_1_flow/5mbps.pcap")
 		self.add_pcap_file("tcpdump_logs/dlint_1_flow/20mbps.pcap")
 
-		self.thrash_image = ImageTk.PhotoImage(Image.open("thrash_icon.png").resize((20, 20)))
-		self.rename_image = ImageTk.PhotoImage(Image.open("rename_icon.png").resize((20, 20)))
+		self.thrash_image = ImageTk.PhotoImage(Image.open("assets/thrash_icon.png").resize((20, 20)))
+		self.rename_image = ImageTk.PhotoImage(Image.open("assets/rename_icon.png").resize((20, 20)))
 
 		self.canvas = Canvas(
 			self.root,
@@ -46,17 +49,29 @@ class PcapMode(BasePage):
 			fill="#2E3440",
 			font=("Inter Bold", 48 * -1)
 		)
-  
+
 		home_page_button = tk.Button(
 			text="Home",
 			font=("Inter Medium", 20 * -1),
 			command=lambda: self.controller.show_frame("index_page")
 		)
 		home_page_button.place(
-			x=5.0,
-			y=5.0,
+			x=32.0,
+			y=32.0,
 			width=100.0,
-			height=50.0
+			height=56.0
+		)
+
+		button_1 = tk.Button(
+			text="Select Pcap",
+			font=("Inter Medium", 20 * -1),
+			command=self.select_file_action,
+		)
+		button_1.place(
+			x=158.0,
+			y=32.0,
+			width=140.0,
+			height=56.0
 		)
 
 		self.plot_figure = Figure(figsize=(10, 10), dpi=100)
@@ -81,21 +96,6 @@ class PcapMode(BasePage):
 			fill="#A8A6A6",
 			outline="")
 
-		button_1 = Button(
-			text="Select Pcap",
-	  		font=("Inter Medium", 20 * -1),
-			borderwidth=0,
-			highlightthickness=0,
-			command=self.select_file_action,
-			relief="flat"
-		)
-		button_1.place(
-			x=32.0,
-			y=32.0,
-			width=266.0,
-			height=56.0
-		)
-
 		self.canvas.create_rectangle(
 			-2.0,
 			115.0,
@@ -103,7 +103,7 @@ class PcapMode(BasePage):
 			117.0,
 			fill="#000000",
 			outline="")
-  
+
 		self.draw_side_menu_elements()
 
 	def draw_side_menu_elements(self):
@@ -127,23 +127,27 @@ class PcapMode(BasePage):
 			rename_button = tk.Button(self.frame, image=self.rename_image, command=lambda file=file: self._rename_line(file))
 			rename_button.pack(anchor="n")
 
+	def redraw_middle_menu_side(self):
+		self.frame.destroy()
+		self.draw_side_menu_elements()
+
 	def select_file_action(self):
 		file_path = tk.filedialog.askopenfilename(initialdir=".", title="Select file",
 													filetypes=(("pcap files", "*.pcap"), ("all files", "*.*")))
 		if file_path:
 			self.add_pcap_file(file_path)
-			self.frame.destroy()
-			self.draw_side_menu_elements()
-   
+			self.redraw_middle_menu_side()
 
 	def _remove_line(self, file):
 		self.dataframe = self.dataframe.drop(file, axis=1)
 		del self.dataframe_line_attributes[file]
+		self.redraw_middle_menu_side()
 
 	def _rename_line(self, file):
 		new_title = tk.simpledialog.askstring("Rename", "Enter new name")
 		if new_title is not None:
 			self.dataframe_line_attributes[file]["title"] = new_title
+			self.redraw_middle_menu_side()
 
 	def add_pcap_file(self, file_path):
 		self.dataframe[file_path] = ...

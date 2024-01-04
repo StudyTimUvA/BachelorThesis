@@ -3,12 +3,14 @@ matplotlib.use('TkAgg')
 
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure
+
 import tkinter as tk
 from dataclasses import dataclass
 import scapy as scapy
 from scapy.utils import PcapReader
 from scapy import layers
+from PIL import ImageTk, Image
+from typing import List
 
 @dataclass
 class PcapFile:
@@ -17,6 +19,11 @@ class PcapFile:
 	title: str
 	int_type: str
 	series: np.array = None
+
+@dataclass
+class Metric:
+	name: str
+	tcp_kind: List[int]
 
 class App:
 	def __init__(self, root):
@@ -36,6 +43,13 @@ class App:
 		demo2 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/plint_1_flow/5mbps.pcap", tk.BooleanVar(), "plint 5mbps", "PLINT")
 		demo3 = PcapFile("/home/tim/Desktop/AAUvA/Thesis/tcpdump_logs/forw_1_flow/5mbps.pcap", tk.BooleanVar(), "forw 5mbps", "FORW")
 		self.pcap_files = [demo1, demo2, demo3]
+
+		self.delay_metric = Metric("Processing delay", [114, 132])
+		self.path_completeness_metric = Metric("Path completeness", [])
+		self.metrics = [self.delay_metric, self.path_completeness_metric]
+
+		self.thrash_image = ImageTk.PhotoImage(Image.open("thrash_icon.png").resize((20, 20)))
+		self.rename_image = ImageTk.PhotoImage(Image.open("rename_icon.png").resize((20, 20)))
 
 		self.file_path_selected = None
 		self.selected_int_type = None
@@ -79,11 +93,9 @@ class App:
 
 	def select_file(self):
 		self.file_path_selected = tk.filedialog.askopenfilename()
-		self.file_selector_button.config(text=self.file_path_selected)
-		print(file_path)
+		self.file_selector_button.config(text=self.file_path_selected.split("/")[-1][:25])
 
 	def add_pcap_button(self):
-		print("Add button pressed")
 		if self.file_path_selected is None:
 			print("No file selected")
 			return
@@ -109,15 +121,16 @@ class App:
 		# Create toggle buttons for each line
 		for line in self.pcap_files:
 			toggle_var = tk.BooleanVar()
-			toggle_button = tk.Checkbutton(self.side_menu_middle, text=line.title, variable=line.toggle_var, onvalue=True, offvalue=False, bg='grey', command=self.toggle_button)
+			toggle_button = tk.Checkbutton(self.side_menu_middle, text=line.title, variable=line.toggle_var, onvalue=True, offvalue=False, bg='grey', command=self.redraw_plot)
 			toggle_button.pack(anchor='w')
 
 			def remove_line(line):
 				self.pcap_files.remove(line)
 				self.redraw_middle_menu_side()
+				self.redraw_plot()
 
 			# add remove button next to it, with a thrashcan icon
-			remove_button = tk.Button(self.side_menu_middle, text="remove", command=lambda line=line: remove_line(line))
+			remove_button = tk.Button(self.side_menu_middle, image=self.thrash_image, command=lambda line=line: remove_line(line))
 			remove_button.pack(anchor='nw')
 
 			def rename_line(line):
@@ -127,7 +140,7 @@ class App:
 					self.redraw_middle_menu_side()
 
 			# Add a rename button next to it, with a pencil icon
-			rename_button = tk.Button(self.side_menu_middle, text="rename", command=lambda line=line: rename_line(line))
+			rename_button = tk.Button(self.side_menu_middle, image=self.rename_image, command=lambda line=line: rename_line(line))
 			rename_button.pack(anchor='nw')
 
 			# Add a separator
@@ -141,10 +154,12 @@ class App:
 		self._create_middle_side_menu()
 		self._create_bottom_side_menu()
 
-	def toggle_button(self):
+	def redraw_plot(self):
 		# Clear the plot
 		self.plot.clear()
-		self.plot2.clear()
+		self.plot.title.set_text("Processing delays")
+		# self.plot2.clear()
+		# self.plot2.title.set_text("ECDF")
 
 		for file in self.pcap_files:
 			if file.toggle_var.get():
@@ -169,7 +184,7 @@ class App:
 				continue
 
 			for option in packet.getlayer(layers.inet.TCP).options:
-				if option[0] == 114:  # hex 0x72
+				if option[0] == self.delay_metric.tcp_kind[0]:
 					values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
 
 					kind = option[0]
@@ -181,7 +196,7 @@ class App:
 
 					delays.append(delay)
 
-				elif option[0] == 132:  # hex 0x84
+				elif option[0] == self.delay_metric.tcp_kind[1]:  # hex 0x84
 					# TODO: check this
 					values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
 
@@ -199,8 +214,10 @@ class App:
 	def _add_plot_to_view(self):
 		# Create a figure
 		self.figure = Figure(figsize=(5, 5), dpi=100)
-		self.plot = self.figure.add_subplot(121)
-		self.plot2 = self.figure.add_subplot(122)
+		# self.plot = self.figure.add_subplot(121)
+		# self.plot2 = self.figure.add_subplot(122)
+		self.plot = self.figure.add_subplot(111)
+		self.plt2 = self.plot
 
 		# Create a canvas
 		self.canvas = FigureCanvasTkAgg(self.figure, self.root)
@@ -218,12 +235,12 @@ class App:
 		# elif self.radio_options[self.radio_var.get()] == "ECDF":
 		x = np.sort(y)
 		y = np.arange(1, len(x) + 1) / len(x)
-		self.plot2.plot(x, y, label=label)
+		# self.plot2.plot(x, y, label=label)
 		# else:
 		# 	print("Unknown radio option")
 	
 		self.plot.legend()
-		self.plot2.legend()
+		# self.plot2.legend()
 		self.canvas.draw()
 
 	def _create_bottom_side_menu(self):
@@ -231,7 +248,7 @@ class App:
 		self.side_menu_bottom.pack(side='top', fill='both')
 
 		# Add radio buttons
-		self.radio_options = ["Delays", "ECDF"]
+		self.radio_options = ["Processing delay", "Path completeness"]
 		self.radio_var = tk.IntVar()
 		self.radio_var.set(0)
 

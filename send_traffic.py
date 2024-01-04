@@ -21,7 +21,7 @@ conf.iface="lo"
 
 # Craft a TCP SYN packet
 tcp = TCP(dport=target_port, sport=443, flags="S", seq=[i for i in range(NUM_PACKETS)])
-tcp.options = [(114, b"\x00\x01\x00\x00\x00\x00\x00\x02")]
+tcp.options = [(114, b"\x00\x01\x00\x00\x00\x00\x00\x02"), (114, b"\x00\x02\x00\x00\x00\x00\x00\x02"), (114, b"\x00\x03\x00\x00\x00\x00\x00\x02")]
 
 ip = IP(dst=target_ip, ttl=10)
 tcp_packet = ip / tcp

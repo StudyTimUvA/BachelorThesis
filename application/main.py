@@ -7,6 +7,7 @@ class MainController:
     def __init__(self):
         self.root = Tk()
         self.frames = {}
+        self.settings = {}
 
         self._add_frame("live_mode", LiveMode)
         self._add_frame("pcap_mode", PcapMode)
@@ -16,11 +17,10 @@ class MainController:
         self.show_frame("index_page")
 
     def _add_frame(self, name, frame):
-        # TODO: move initialization to show_frame method
         self.frames[name] = frame
 
     def show_frame(self, name):
-        new_frame = self.frames[name](self.root, self)
+        new_frame = self.frames[name](self.root, self, self.settings)
 
         if self.current_frame:
             self.current_frame.destroy()

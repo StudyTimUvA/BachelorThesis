@@ -10,11 +10,12 @@ def relative_to_assets(path: str) -> Path:
     return path
 
 class IndexPage(BasePage):
-    def __init__(self, root, controller):
+    def __init__(self, root, controller, settings):
         super().__init__(root)
 
         self.root.title("In-band Network Telemetry analysis")
         self.controller = controller
+        self.settings = settings
 
         self.canvas = tk.Canvas(
             self.root,
@@ -37,13 +38,13 @@ class IndexPage(BasePage):
             font=("Inter Bold", 48 * -1)
         )
 
-        self.canvas.create_rectangle(
+        self.icon = ImageTk.PhotoImage(Image.open("assets/pulse.png").resize((100, 100)))
+        self.canvas.create_image(
             206.0,
             73.0,
-            328.0,
-            195.0,
-            fill="#000000",
-            outline="")
+            image=self.icon,
+            anchor="nw"
+        )
 
         self.canvas.create_text(
             216.0,
@@ -147,11 +148,11 @@ class IndexPage(BasePage):
         bottom_checkbox = Checkbutton(self.root, variable=self.bottom_selected, command=lambda: self.top_selected.set(not self.bottom_selected.get()))
         bottom_checkbox.place(x=232.0, y=613.0)
 
-        self.button_1_image = ImageTk.PhotoImage(
-            Image.open(relative_to_assets("button_1.png")))
+        self.next_button_image = ImageTk.PhotoImage(Image.open("assets/next_button.png"))
+        self.button_2_image = ImageTk.PhotoImage(Image.open("assets/settings_button.png"))
 
         button_1 = Button(
-            image=self.button_1_image,
+            image=self.next_button_image,
             borderwidth=0,
             highlightthickness=0,
             command=self.next_button_action,
@@ -164,8 +165,6 @@ class IndexPage(BasePage):
             height=117.0
         )
 
-        self.button_2_image = ImageTk.PhotoImage(
-            Image.open(relative_to_assets("button_2.png")))
         button_2 = Button(
             image=self.button_2_image,
             borderwidth=0,
@@ -181,6 +180,8 @@ class IndexPage(BasePage):
         )
 
     def next_button_action(self):
+        self.settings["application"] = self.selected.get()
+        
         if self.top_selected.get():
             self.controller.show_frame("pcap_mode")
         else:

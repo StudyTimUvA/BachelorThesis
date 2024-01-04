@@ -89,3 +89,5 @@ with open("parameters.itg", "w") as config_file:
 print("Starting ITGSend")
 process = subprocess.Popen(["ITGSend", "parameters.itg"], stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
 process.wait()
+
+# TODO: version of script using iperf3
