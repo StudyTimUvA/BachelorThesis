@@ -65,7 +65,7 @@ class IndexPage(BasePage):
 
         self.selected = StringVar()
         self.selected.set("Delay")
-        options = ["Delay", "Path completeness"]
+        options = ["Delay", "Path completeness", "Throughput"]
         drop_down = OptionMenu(self.root, self.selected, *options)
         drop_down.place(x=506.0, y=281.0, width=467.0, height=44.0)
 

@@ -10,8 +10,11 @@ Arguments:
     -V/--verbose: Whether to print verbose.
     -t/--time: The amount of time to send data for in seconds.
     -z/--packets: The number of packets to send per flow.
+    -c/--rate: The rate at which to send packets in packets/sec.
     -k/--size: The size of each packet in KB.
     -f/--flows: The number of flows to send.
+    
+    Note: The most restrive of -t, -z and -c will be used.
 """
 
 import argparse
@@ -59,6 +62,13 @@ parser.add_argument(
     help="The number of packets to send per flow."
 )
 parser.add_argument(
+    "-c",
+    "--rate",
+    type=int,
+    default=2,
+    help="The rate at which to send packets in packets/sec."
+)
+parser.add_argument(
     "-k",
     "--size",
     type=int,
@@ -83,7 +93,7 @@ starting_duration = args.time
 # Write the itg file
 with open("parameters.itg", "w") as config_file:
     for flow in range(args.flows):
-        config_file.write(f"-a {address} -rp {starting_port + flow} -t {int((starting_duration - (time_between_flows * flow)) * 1000)} -T TCP -d {int(time_between_flows * flow * 1000)}\n")
+        config_file.write(f"-a {address} -rp {starting_port + flow} -t {int((starting_duration - (time_between_flows * flow)) * 1000)} -T TCP -d {int(time_between_flows * flow * 1000)} -C {args.rate}\n")
 
 # Start the ITGSend process
 print("Starting ITGSend")

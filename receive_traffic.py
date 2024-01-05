@@ -27,6 +27,7 @@ def process_packet(packet):
         return
 
     for option in packet.getlayer(TCP).options:
+        print(option)
         if option[0] == 114:
             values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
 
@@ -61,8 +62,8 @@ def process_packet(packet):
 sniffer = AsyncSniffer(prn=process_packet, store=0)
 sniffer.start()
 
-for i in range(30):
-    print(array)
-    time.sleep(1)
+print("Started sniffing")
+while(True):
+    time.sleep(120)
 
 sniffer.stop()

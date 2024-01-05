@@ -8,6 +8,7 @@ from scapy.all import AsyncSniffer, conf, IP, TCP
 import time
 
 conf.iface="lo"
+conf.layers.filter([TCP])
 
 class LiveMode(BasePage):
 	def __init__(self, root, controller, settings):
@@ -66,7 +67,6 @@ class LiveMode(BasePage):
 		self.toolbarFrame.place(x=332.0, y=216.0, width=1110.0, height=50.0)
 		self.toolbar = NavigationToolbar2Tk(self.plot_canvas, self.toolbarFrame)
 		self.toolbar.update()
-		# self.plot_canvas.get_tk_widget().grid(row=1, column=0, padx=10, pady=10)
 
 		self.plot_canvas.draw()
 
@@ -162,15 +162,12 @@ class LiveMode(BasePage):
 		self.sniffer.start()
 
 	def update_plot(self, packet):
-		if not packet.haslayer(IP):
-			return
-
 		if not packet.haslayer(TCP):
 			return
 
 		self.update_values_from_packet(packet)
 
-		if len(self.data_points) % 5 == 0:
+		if len(self.data_points) % 5 == 0 and len(self.data_points) > 0:
 			self.plot.clear()
 			self.plot.plot(self.data_points, label=self.settings['application'])
 			self.plot.set_xlabel("Packet #")
@@ -184,7 +181,6 @@ class LiveMode(BasePage):
 				self.ecdf.hist(self.data_points, cumulative=True, density=True, bins=1000, histtype='step', label='ECDF')
 				self.ecdf.set_xlabel("Delay (ns)")
 				self.ecdf.set_ylabel("ECDF")
-				# self.ecdf.title = "ECDF"
 				self.ecdf.legend()
 				self.plot_canvas.draw_idle()
 				self.plot_canvas.flush_events()

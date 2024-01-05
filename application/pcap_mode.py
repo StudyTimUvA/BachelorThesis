@@ -15,9 +15,7 @@ class PcapMode(BasePage):
 		super().__init__(root)
 		self.root = root
 		self.root.title("Pcap analysis for In-band Network Telemetry")
-  
-		print(settings)
-  
+
 		self.controller = controller
 		self.settings = settings
 
@@ -75,14 +73,20 @@ class PcapMode(BasePage):
 		)
 
 		self.plot_figure = Figure(figsize=(10, 10), dpi=100)
-		self.plot = self.plot_figure.add_subplot(111)
+		if self.settings.get("application") == "Delay":
+			self.plot = self.plot_figure.add_subplot(121)
+			self.ecdf = self.plot_figure.add_subplot(122)
+		else:
+			self.plot = self.plot_figure.add_subplot(111)
+
 		self.plot_canvas = FigureCanvasTkAgg(self.plot_figure, master=self.root)
 		self.plot_canvas.draw()
 		self.plot_canvas.get_tk_widget().place(x=330.0, y=241.0, width=1110.0, height=722.0)
 
-		# self.toolbar = NavigationToolbar2Tk(self.plot_canvas, self.root)
-		# self.toolbar.update()
-		# self.plot_canvas.get_tk_widget().grid(row=1, column=0, padx=10, pady=10)
+		self.toolbarFrame = Frame(self.root)
+		self.toolbarFrame.place(x=332.0, y=216.0, width=1110.0, height=50.0)
+		self.toolbar = NavigationToolbar2Tk(self.plot_canvas, self.toolbarFrame)
+		self.toolbar.update()
 
 		self.plot.plot([1, 2, 3, 4, 5], [1, 2, 3, 4, 5], label="test")
 		self.plot.legend()
@@ -112,7 +116,6 @@ class PcapMode(BasePage):
 		self.frame.place(x=14.0, y=133.0, width=297.875, height=850.0)
 
 		for file in self.dataframe.columns:
-			# TODO: align buttons
 			lineFrame = Frame(self.frame)
 			toggle_button = Checkbutton(lineFrame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<45}',
 											variable=self.dataframe_line_attributes[file]["toggle_variable"],
@@ -198,10 +201,22 @@ class PcapMode(BasePage):
 
 		for file in self.dataframe.columns:
 			if self.dataframe_line_attributes[file]["toggle_variable"].get():
-				self.plot.plot(self.get_values_from_pcap(file), label=self.dataframe_line_attributes[file]["title"])
+				values = self.get_values_from_pcap(file)
+    
+				self.plot.plot(values, label=self.dataframe_line_attributes[file]["title"])
+    
+				if self.settings.get("application") == "Delay":
+					self.ecdf.clear()
+					self.ecdf.hist(values, cumulative=True, density=True, bins=1000, histtype='step', label='ECDF')
+					self.ecdf.set_xlabel("Delay (ns)")
+					self.ecdf.set_ylabel("ECDF")
+					self.ecdf.legend()
+					self.plot_canvas.draw_idle()
+					self.plot_canvas.flush_events()
 
 		self.plot.legend()
-		self.plot_canvas.draw()
+		self.plot_canvas.draw_idle()
+		self.plot_canvas.flush_events()
 
 
 if __name__ == "__main__":
