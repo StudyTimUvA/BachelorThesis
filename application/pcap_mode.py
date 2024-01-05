@@ -113,19 +113,21 @@ class PcapMode(BasePage):
 
 		for file in self.dataframe.columns:
 			# TODO: align buttons
-			toggle_button = Checkbutton(self.frame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<45}',
+			lineFrame = Frame(self.frame)
+			toggle_button = Checkbutton(lineFrame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<45}',
 											variable=self.dataframe_line_attributes[file]["toggle_variable"],
 		   									onvalue=True, offvalue=False,
 											command=self.update_plot)
-			toggle_button.pack(anchor="n")
+			toggle_button.pack(side="left", anchor="w")
 
 			# add remove button, with a thrashcan icon
-			remove_button = tk.Button(self.frame, image=self.thrash_image, command=lambda file=file: self._remove_line(file))
-			remove_button.pack(anchor="n")
+			remove_button = tk.Button(lineFrame, image=self.thrash_image, command=lambda file=file: self._remove_line(file))
+			remove_button.pack(side="left", anchor="w")
 
 			# Add a rename button, with a pencil icon
-			rename_button = tk.Button(self.frame, image=self.rename_image, command=lambda file=file: self._rename_line(file))
-			rename_button.pack(anchor="n")
+			rename_button = tk.Button(lineFrame, image=self.rename_image, command=lambda file=file: self._rename_line(file))
+			rename_button.pack(side="left", anchor="w")
+			lineFrame.place(x=0.0, y=0.0 + (self.dataframe.columns.get_loc(file) * 50), width=300, height=40.0)
 
 	def redraw_middle_menu_side(self):
 		self.frame.destroy()
