@@ -13,13 +13,12 @@ Arguments:
     -c/--rate: The rate at which to send packets in packets/sec.
     -k/--size: The size of each packet in KB.
     -f/--flows: The number of flows to send.
-    
+
     Note: The most restrive of -t, -z and -c will be used.
 """
 
 import argparse
 import subprocess
-import time
 
 parser = argparse.ArgumentParser(
     prog="Data Sender",
@@ -93,11 +92,16 @@ starting_duration = args.time
 # Write the itg file
 with open("parameters.itg", "w") as config_file:
     for flow in range(args.flows):
-        config_file.write(f"-a {address} -rp {starting_port + flow} -t {int((starting_duration - (time_between_flows * flow)) * 1000)} -T TCP -d {int(time_between_flows * flow * 1000)} -C {args.rate}\n")
+        duration = int((starting_duration - (time_between_flows * flow)) * 1000)
+        delay = int((time_between_flows * flow) * 1000)
+
+        config_file.write(
+            f"-a {address} -rp {starting_port + flow} -t {duration} -T TCP -d {delay} -C {args.rate}\n")
 
 # Start the ITGSend process
 print("Starting ITGSend")
-process = subprocess.Popen(["ITGSend", "parameters.itg"], stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
+process = subprocess.Popen(["ITGSend", "parameters.itg"],
+                           stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
 process.wait()
 
 # TODO: version of script using iperf3

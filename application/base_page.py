@@ -1,4 +1,12 @@
+"""
+This file forms the base of a page in the application.
+
+It sets the background color, and the resolution of the window.
+It also also defines 'q' to quit the application.
+"""
+
 import tkinter as tk
+
 
 class BasePage(tk.Frame):
     def __init__(self, root):

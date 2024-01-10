@@ -1,15 +1,18 @@
+"""
+This file contains the class for the index page.
+"""
+
 import tkinter as tk
-from tkinter import *
-from pathlib import Path
-import os
+from tkinter import StringVar, BooleanVar, OptionMenu, Checkbutton, Button
 from PIL import ImageTk, Image
 from base_page import BasePage
 
-def relative_to_assets(path: str) -> Path:
-    path = Path(f"{os.getcwd()}/assets/frame0/") / Path(path)
-    return path
 
 class IndexPage(BasePage):
+    """
+    This class represents the index page of the application.
+    It allows the user to select the application, and the input mode.
+    """
     def __init__(self, root, controller, settings):
         super().__init__(root)
 
@@ -65,7 +68,7 @@ class IndexPage(BasePage):
 
         self.selected = StringVar()
         self.selected.set("Delay")
-        options = ["Delay", "Path completeness", "Throughput"]
+        options = ["Delay", "Path completeness"]
         drop_down = OptionMenu(self.root, self.selected, *options)
         drop_down.place(x=506.0, y=281.0, width=467.0, height=44.0)
 
@@ -124,7 +127,8 @@ class IndexPage(BasePage):
         self.top_selected.set(True)
         self.bottom_selected = BooleanVar()
         self.bottom_selected.set(False)
-        top_checkbox = Checkbutton(self.root, variable=self.top_selected, command=lambda: self.bottom_selected.set(not self.top_selected.get()))
+        top_checkbox = Checkbutton(self.root, variable=self.top_selected,
+                                   command=lambda: self.bottom_selected.set(not self.top_selected.get()))
         top_checkbox.place(x=232.0, y=462.0)
 
         self.canvas.create_text(
@@ -145,7 +149,8 @@ class IndexPage(BasePage):
             font=("Inter Medium", 24 * -1)
         )
 
-        bottom_checkbox = Checkbutton(self.root, variable=self.bottom_selected, command=lambda: self.top_selected.set(not self.bottom_selected.get()))
+        bottom_checkbox = Checkbutton(self.root, variable=self.bottom_selected,
+                                      command=lambda: self.top_selected.set(not self.bottom_selected.get()))
         bottom_checkbox.place(x=232.0, y=613.0)
 
         self.next_button_image = ImageTk.PhotoImage(Image.open("assets/next_button.png"))
@@ -181,11 +186,12 @@ class IndexPage(BasePage):
 
     def next_button_action(self):
         self.settings["application"] = self.selected.get()
-        
+
         if self.top_selected.get():
             self.controller.show_frame("pcap_mode")
         else:
             self.controller.show_frame("live_mode")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
