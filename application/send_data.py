@@ -1,6 +1,7 @@
 """
 This script is used to send data over the network.
-It parses command line arguments, and then calculates the required values to write to a config file for ITGSend.
+It parses command line arguments, and then calculates the required values to write to a config file for ITGSend,
+or in the case of iperf3, start it directly.
 
 After writing the config file, it starts the ITGSend process, and waits for it to finish.
 
@@ -13,12 +14,15 @@ Arguments:
     -c/--rate: The rate at which to send packets in packets/sec.
     -k/--size: The size of each packet in KB.
     -f/--flows: The number of flows to send.
+    -i/--iperf: Whether to use iperf3 instead of ITGSend.
+    -b/--bandwidth: The bandwidth to send at in KB/sec for iPerf3.
 
     Note: The most restrive of -t, -z and -c will be used.
 """
 
 import argparse
 import subprocess
+import iperf3
 
 parser = argparse.ArgumentParser(
     prog="Data Sender",
@@ -58,21 +62,21 @@ parser.add_argument(
     "--packets",
     type=int,
     default=1000,
-    help="The number of packets to send per flow."
+    help="The number of packets to send per flow, only available for ITGSend.."
 )
 parser.add_argument(
     "-c",
     "--rate",
     type=int,
     default=2,
-    help="The rate at which to send packets in packets/sec."
+    help="The rate at which to send packets in packets/sec, only available for ITGSend.."
 )
 parser.add_argument(
     "-k",
     "--size",
     type=int,
     default=100,
-    help="The size of each packet in KB."
+    help="The size of each packet in KB, only available for ITGSend."
 )
 parser.add_argument(
     "-f",
@@ -80,6 +84,20 @@ parser.add_argument(
     type=int,
     default=1,
     help="The number of flows to send."
+)
+parser.add_argument(
+    "-i",
+    "--iperf",
+    type=bool,
+    default=False,
+    help="Whether to use iperf3 instead of ITGSend."
+)
+parser.add_argument(
+    "-b",
+    "--bandwidth",
+    type=int,
+    default=100,
+    help="The bandwidth to send at in KB/sec for iPerf3."
 )
 
 # Parse the arguments
@@ -89,19 +107,32 @@ address = args.destination
 starting_port = args.port
 starting_duration = args.time
 
-# Write the itg file
-with open("parameters.itg", "w") as config_file:
-    for flow in range(args.flows):
-        duration = int((starting_duration - (time_between_flows * flow)) * 1000)
-        delay = int((time_between_flows * flow) * 1000)
+if not bool(args.iperf):
+    # Write the itg file
+    with open("parameters.itg", "w") as config_file:
+        for flow in range(args.flows):
+            duration = int((starting_duration - (time_between_flows * flow)) * 1000)
+            delay = int((time_between_flows * flow) * 1000)
 
-        config_file.write(
-            f"-a {address} -rp {starting_port + flow} -t {duration} -T TCP -d {delay} -C {args.rate}\n")
+            config_file.write(
+                f"-a {address} -rp {starting_port + flow} -t {duration} -T TCP -d {delay} -C {args.rate}\n")
 
-# Start the ITGSend process
-print("Starting ITGSend")
-process = subprocess.Popen(["ITGSend", "parameters.itg"],
-                           stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
-process.wait()
+    # Start the ITGSend process
+    print("Starting ITGSend")
+    process = subprocess.Popen(["ITGSend", "parameters.itg"],
+                            stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
+    process.wait()
 
 # TODO: version of script using iperf3
+else:
+    client = iperf3.Client()
+    client.duration = starting_duration
+    client.server_hostname = address
+    client.port = starting_port
+    client.num_streams = args.flows
+    client.bandwidth = args.bandwidth
+    client.zerocopy = True
+
+    print("Starting iperf3")
+    result = client.run()
+    print(result.error)

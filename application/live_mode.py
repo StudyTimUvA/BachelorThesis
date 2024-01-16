@@ -21,6 +21,7 @@ class LiveMode(BasePage):
 
         self.controller = controller
         self.settings = settings
+        print(self.settings)
 
         self.canvas = Canvas(
             self.root,
