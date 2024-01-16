@@ -65,10 +65,10 @@ class LiveMode(BasePage):
             self.plot_figure, master=self.root)
         self.plot_canvas.draw()
         self.plot_canvas.get_tk_widget().place(
-            x=332.0, y=216.0, width=1110.0, height=722.0)
+            x=332.0, y=170.0, width=1110.0, height=725.0)
 
         self.toolbarFrame = Frame(self.root)
-        self.toolbarFrame.place(x=332.0, y=216.0, width=1110.0, height=50.0)
+        self.toolbarFrame.place(x=332.0, y=902.0, width=1110.0, height=50.0)
         self.toolbar = NavigationToolbar2Tk(
             self.plot_canvas, self.toolbarFrame)
         self.toolbar.update()
@@ -309,6 +309,7 @@ class LiveMode(BasePage):
                        density=True, bins=1000, histtype='step', label='ECDF')
         self.ecdf.set_xlabel("Delay (ns)")
         self.ecdf.set_ylabel("ECDF")
+        self.ecdf.set_title("ECDF")
         self.ecdf.legend()
         self.plot_canvas.draw_idle()
         self.plot_canvas.flush_events()

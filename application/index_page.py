@@ -58,19 +58,28 @@ class IndexPage(BasePage):
             font=("Inter SemiBold", 36 * -1)
         )
 
-        self.canvas.create_rectangle(
-            506.0,
-            281.0,
-            973.0,
-            325.0,
-            fill="#E5E9F0",
-            outline="")
+        # self.canvas.create_rectangle(
+        #     506.0,
+        #     281.0,
+        #     973.0,
+        #     325.0,
+        #     fill="#E5E9F0",
+        #     outline="")
 
         self.selected = StringVar()
         self.selected.set("Delay")
         options = ["Delay", "Path completeness"]
-        drop_down = OptionMenu(self.root, self.selected, *options)
-        drop_down.place(x=506.0, y=281.0, width=467.0, height=44.0)
+        # drop_down = OptionMenu(self.root, self.selected, *options)
+        # drop_down.place(x=506.0, y=281.0, width=467.0, height=44.0)
+        # Replace the above dropdown with 3 selection buttons
+        texts = ["Delay", "Path completeness", "Estimated throughput"]
+        variables = [BooleanVar(value=True) for _ in range(3)]
+        self.selected = {texts[i]: variables[i] for i in range(3)}
+        distances = [0, 100, 330]
+        for i in range(3):
+            button = Checkbutton(self.root, variable=variables[i],
+                                 text=texts[i], font=("Inter Medium", 20 * -1))
+            button.place(x=506.0 + distances[i], y=290.0)
 
         self.canvas.create_rectangle(
             216.0,
