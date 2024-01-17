@@ -4,6 +4,8 @@ from tkinter import Canvas, Frame
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from scapy.all import AsyncSniffer, conf, IP, TCP
+from plots import assign_plots
+import numpy as np
 
 # Set the default interface
 conf.iface = "lo"
@@ -21,7 +23,6 @@ class LiveMode(BasePage):
 
         self.controller = controller
         self.settings = settings
-        print(self.settings)
 
         self.canvas = Canvas(
             self.root,
@@ -56,11 +57,7 @@ class LiveMode(BasePage):
         )
 
         self.plot_figure = Figure(figsize=(10, 10), dpi=100)
-        if self.settings.get("application") == "Delay":
-            self.plot = self.plot_figure.add_subplot(121)
-            self.ecdf = self.plot_figure.add_subplot(122)
-        else:
-            self.plot = self.plot_figure.add_subplot(111)
+        self.plots = assign_plots(self.settings, self.plot_figure)
 
         self.plot_canvas = FigureCanvasTkAgg(
             self.plot_figure, master=self.root)
@@ -77,14 +74,14 @@ class LiveMode(BasePage):
         self.plot_canvas.draw()
 
         # Data points for the plot
-        self.data_points = []
+        self.data_points = {}
 
         # Variables for tracking path completeness
         self.complete_cycles_per_port = {}
         self.broken_cycles_per_port = {}
         self.id_input_array_per_port = {}
         self.expected_sequence = [1, 2, 3, 4]
-        self.every_other = False
+        self.number_packets_received = 0
 
         self.canvas.create_rectangle(
             0.0,
@@ -130,20 +127,7 @@ class LiveMode(BasePage):
             height=56.0
         )
 
-        if self.settings.get("application") == "Delay":
-            ecdf_button = tk.Button(
-                text="Generate ECDF",
-                font=("Inter Medium", 20 * -1),
-                command=self.generate_ecdf
-            )
-            ecdf_button.place(
-                x=32.0,
-                y=330.0,
-                width=266.0,
-                height=56.0
-            )
-
-        self.sniffing_filter = ""
+        self.sniffing_filter = "TCP"
         self.sniffer = AsyncSniffer(prn=self.update_plot, store=0)
         self.sniffer.start()
 
@@ -170,8 +154,11 @@ class LiveMode(BasePage):
             self.restart_sniffer()
 
     def _reset_data(self):
-        self.data_points = []
-        self.plot.clear()
+        self.data_points = {}
+
+        for plot in self.plots.values():
+            plot.clear()
+
         self.plot_canvas.draw_idle()
         self.plot_canvas.flush_events()
 
@@ -186,14 +173,30 @@ class LiveMode(BasePage):
             return
 
         self.update_values_from_packet(packet)
+        self.number_packets_received += 1
 
-        if len(self.data_points) % 5 == 0 and len(self.data_points) > 0:
-            self.plot.clear()
-            self.plot.plot(self.data_points,
-                           label=self.settings['application'])
-            self.plot.set_xlabel("Packet #")
-            # self.plot.title = self.settings['application']
-            self.plot.legend()
+        if self.number_packets_received % 5 == 0 and self.number_packets_received > 0:
+            # Clear plot, draw each plot again
+            for metric, figure in self.plots.items():
+                if metric not in self.data_points:
+                    continue
+
+                plot_config = self.settings["plot_config"][metric]
+
+                figure.clear()
+                post_processor = plot_config.get("post_processor")
+                if post_processor:
+                    x, y = post_processor(self.data_points[metric])
+                    figure.plot(x, y)
+                else:
+                    figure.plot(self.data_points[metric])
+
+                figure.set_title(plot_config.get("title"))
+                figure.set_xlabel(plot_config.get("xlabel"))
+                figure.set_ylabel(plot_config.get("ylabel"))
+                figure.legend()
+                
+            self.plot_figure.tight_layout()
             self.plot_canvas.draw_idle()
             self.plot_canvas.flush_events()
 
@@ -201,15 +204,12 @@ class LiveMode(BasePage):
         method_by_setting = {
             "Delay": self._update_delay_values_from_packet,
             "Path completeness": self._update_path_completeness_values,
-            "Throughput estimation": self._update_throughput_values
+            "Estimated throughput": self._update_throughput_values
         }
 
-        method = method_by_setting.get(self.settings.get("application"))
-        if not method:
-            raise Exception(
-                f"No match found for chosen application: {self.settings.get('application')}")
-
-        method(packet)
+        for metric in self.settings["application"]:
+            if self.settings["application"][metric]:
+                method_by_setting[metric](packet)
 
     def _update_delay_values_from_packet(self, packet):
         delay = -1
@@ -239,14 +239,11 @@ class LiveMode(BasePage):
         if delay <= 0:
             return
 
-        self.data_points.append(delay)
+        self.data_points["Delay"] = self.data_points.get("Delay", [])
+        self.data_points["Delay"].append(delay)
 
     def _update_path_completeness_values(self, packet):
         switch_id = -1
-
-        if self.every_other:
-            self.every_other != self.every_other
-            return
 
         for option in packet.getlayer(TCP).options:
             if option[0] == 114:
@@ -295,22 +292,13 @@ class LiveMode(BasePage):
 
         total_complete_cycles = sum(self.complete_cycles_per_port.values())
         total_broken_cycles = sum(self.broken_cycles_per_port.values())
-        self.data_points.append(
-            total_complete_cycles / (total_complete_cycles + total_broken_cycles))
+
+        self.data_points["Path completeness"] = self.data_points.get(
+            "path_completeness", [])
+        self.data_points["Path completeness"].append(
+            total_complete_cycles /
+            (total_complete_cycles + total_broken_cycles)
+        )
 
     def _update_throughput_values(self, packet):
         ...
-
-    def generate_ecdf(self):
-        if not self.settings.get("application") == "Delay":
-            return
-
-        self.ecdf.clear()
-        self.ecdf.hist(self.data_points, cumulative=True,
-                       density=True, bins=1000, histtype='step', label='ECDF')
-        self.ecdf.set_xlabel("Delay (ns)")
-        self.ecdf.set_ylabel("ECDF")
-        self.ecdf.set_title("ECDF")
-        self.ecdf.legend()
-        self.plot_canvas.draw_idle()
-        self.plot_canvas.flush_events()

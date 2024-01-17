@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import StringVar, BooleanVar, OptionMenu, Checkbutton, Button
 from PIL import ImageTk, Image
 from base_page import BasePage
+import numpy as np
 
 
 class IndexPage(BasePage):
@@ -13,6 +14,7 @@ class IndexPage(BasePage):
     This class represents the index page of the application.
     It allows the user to select the application, and the input mode.
     """
+
     def __init__(self, root, controller, settings):
         super().__init__(root)
 
@@ -41,7 +43,8 @@ class IndexPage(BasePage):
             font=("Inter Bold", 48 * -1)
         )
 
-        self.icon = ImageTk.PhotoImage(Image.open("assets/pulse.png").resize((100, 100)))
+        self.icon = ImageTk.PhotoImage(Image.open(
+            "assets/pulse.png").resize((100, 100)))
         self.canvas.create_image(
             206.0,
             73.0,
@@ -58,17 +61,20 @@ class IndexPage(BasePage):
             font=("Inter SemiBold", 36 * -1)
         )
 
-        # drop_down = OptionMenu(self.root, self.selected, *options)
-        # drop_down.place(x=506.0, y=281.0, width=467.0, height=44.0)
-        # Replace the above dropdown with 3 selection buttons
         texts = ["Delay", "Path completeness", "Estimated throughput"]
         variables = [BooleanVar(value=True) for _ in range(3)]
         self.selected = {texts[i]: variables[i] for i in range(3)}
         distances = [0, 100, 330]
         for i in range(3):
             button = Checkbutton(self.root, variable=variables[i],
-                                 text=texts[i], font=("Inter Medium", 20 * -1))
+                                 text=texts[i], font=("Inter Medium", 20 * -1),
+                                 bg="#D8DEE9", activebackground="#D8DEE9")
             button.place(x=506.0 + distances[i], y=290.0)
+            
+        self.settings["plot_config"] = {"Delay": {}, "Path completeness": {}, "Estimated throughput": {}}
+        self.settings["plot_config"]["Delay"] = {"title": "Delay ecdf", "ylabel": "Probability", "xlabel": "Delay (ns)", "post_processor": lambda x: (np.sort(x), np.linspace(0, 1, len(x)))}
+        self.settings["plot_config"]["Path completeness"] = {"title": "Path completeness", "ylabel": "Completeness (%)", "xlabel": ""}
+        self.settings["plot_config"]["Estimated throughput"] = {"title": "Estimated throughput ecdf", "ylabel": "Throughput", "xlabel": ""}
 
         self.canvas.create_rectangle(
             216.0,
@@ -121,13 +127,15 @@ class IndexPage(BasePage):
             font=("Inter Medium", 24 * -1)
         )
 
-        self.top_selected = BooleanVar()
-        self.top_selected.set(True)
-        self.bottom_selected = BooleanVar()
-        self.bottom_selected.set(False)
-        top_checkbox = Checkbutton(self.root, variable=self.top_selected,
-                                   command=lambda: self.bottom_selected.set(not self.top_selected.get()))
-        top_checkbox.place(x=232.0, y=462.0)
+        self.pcap_selected_bool = BooleanVar()
+        self.pcap_selected_bool.set(True)
+        self.live_selected_bool = BooleanVar()
+        self.live_selected_bool.set(False)
+        pcap_mode_checkbox = Checkbutton(self.root, variable=self.pcap_selected_bool,
+                                         command=lambda: self.live_selected_bool.set(
+                                             not self.pcap_selected_bool.get()),
+                                         bg="#D8DEE9", activebackground="#D8DEE9")
+        pcap_mode_checkbox.place(x=232.0, y=462.0)
 
         self.canvas.create_text(
             275.0,
@@ -147,12 +155,16 @@ class IndexPage(BasePage):
             font=("Inter Medium", 24 * -1)
         )
 
-        bottom_checkbox = Checkbutton(self.root, variable=self.bottom_selected,
-                                      command=lambda: self.top_selected.set(not self.bottom_selected.get()))
-        bottom_checkbox.place(x=232.0, y=613.0)
+        live_mode_checkbox = Checkbutton(self.root, variable=self.live_selected_bool,
+                                         command=lambda: self.pcap_selected_bool.set(
+                                             not self.live_selected_bool.get()),
+                                         bg="#D8DEE9", activebackground="#D8DEE9")
+        live_mode_checkbox.place(x=232.0, y=613.0)
 
-        self.next_button_image = ImageTk.PhotoImage(Image.open("assets/next_button.png"))
-        self.button_2_image = ImageTk.PhotoImage(Image.open("assets/settings_button.png"))
+        self.next_button_image = ImageTk.PhotoImage(
+            Image.open("assets/next_button.png"))
+        self.button_2_image = ImageTk.PhotoImage(
+            Image.open("assets/settings_button.png"))
 
         button_1 = Button(
             image=self.next_button_image,
@@ -183,9 +195,10 @@ class IndexPage(BasePage):
         )
 
     def next_button_action(self):
-        self.settings["application"] = {key: value.get() for key, value in self.selected.items()}
+        self.settings["application"] = {
+            key: value.get() for key, value in self.selected.items()}
 
-        if self.top_selected.get():
+        if self.pcap_selected_bool.get():
             self.controller.show_frame("pcap_mode")
         else:
             self.controller.show_frame("live_mode")
