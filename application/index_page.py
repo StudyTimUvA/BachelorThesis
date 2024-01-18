@@ -74,7 +74,7 @@ class IndexPage(BasePage):
         self.settings["plot_config"] = {"Delay": {}, "Path completeness": {}, "Estimated throughput": {}}
         self.settings["plot_config"]["Delay"] = {"title": "Delay ecdf", "ylabel": "Probability", "xlabel": "Delay (ns)", "post_processor": lambda x: (np.sort(x), np.linspace(0, 1, len(x)))}
         self.settings["plot_config"]["Path completeness"] = {"title": "Path completeness", "ylabel": "Completeness (%)", "xlabel": ""}
-        self.settings["plot_config"]["Estimated throughput"] = {"title": "Estimated throughput ecdf", "ylabel": "Throughput", "xlabel": ""}
+        self.settings["plot_config"]["Estimated throughput"] = {"title": "Estimated throughput", "ylabel": "Estimated throughput bit/sec", "xlabel": "Packet number #"}
 
         self.canvas.create_rectangle(
             216.0,

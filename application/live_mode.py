@@ -195,7 +195,7 @@ class LiveMode(BasePage):
                 figure.set_xlabel(plot_config.get("xlabel"))
                 figure.set_ylabel(plot_config.get("ylabel"))
                 figure.legend()
-                
+
             self.plot_figure.tight_layout()
             self.plot_canvas.draw_idle()
             self.plot_canvas.flush_events()
@@ -294,11 +294,13 @@ class LiveMode(BasePage):
         total_broken_cycles = sum(self.broken_cycles_per_port.values())
 
         self.data_points["Path completeness"] = self.data_points.get(
-            "path_completeness", [])
+            "Path completeness", [])
         self.data_points["Path completeness"].append(
             total_complete_cycles /
             (total_complete_cycles + total_broken_cycles)
         )
+        
+        print(self.data_points["Path completeness"])
 
     def _update_throughput_values(self, packet):
         ...

@@ -7,6 +7,7 @@ from PIL import ImageTk, Image
 from pandas import DataFrame
 from scapy.utils import PcapReader
 from scapy import layers
+from plots import assign_plots
 
 EXPECTED_SEQUENCE = [1, 2, 3, 4, 5]
 
@@ -22,9 +23,6 @@ class PcapMode(BasePage):
 
         self.dataframe = DataFrame()
         self.dataframe_line_attributes = {}
-
-        self.add_pcap_file("tcpdump_logs/dlint_1_flow/5mbps.pcap")
-        self.add_pcap_file("tcpdump_logs/dlint_1_flow/20mbps.pcap")
 
         self.thrash_image = ImageTk.PhotoImage(
             Image.open("assets/thrash_icon.png").resize((20, 20)))
@@ -63,12 +61,12 @@ class PcapMode(BasePage):
             height=56.0
         )
 
-        button_1 = tk.Button(
+        select_pcap_button = tk.Button(
             text="Select Pcap",
             font=("Inter Medium", 20 * -1),
             command=self.select_file_action,
         )
-        button_1.place(
+        select_pcap_button.place(
             x=158.0,
             y=32.0,
             width=140.0,
@@ -76,26 +74,20 @@ class PcapMode(BasePage):
         )
 
         self.plot_figure = Figure(figsize=(10, 10), dpi=100)
-        if self.settings.get("application") == "Delay":
-            self.plot = self.plot_figure.add_subplot(121)
-            self.ecdf = self.plot_figure.add_subplot(122)
-        else:
-            self.plot = self.plot_figure.add_subplot(111)
+        self.plots = assign_plots(self.settings, self.plot_figure)
 
         self.plot_canvas = FigureCanvasTkAgg(
             self.plot_figure, master=self.root)
         self.plot_canvas.draw()
         self.plot_canvas.get_tk_widget().place(
-            x=330.0, y=241.0, width=1110.0, height=722.0)
+            x=330.0, y=170.0, width=1110.0, height=722.0)
 
         self.toolbarFrame = Frame(self.root)
-        self.toolbarFrame.place(x=332.0, y=216.0, width=1110.0, height=50.0)
+        self.toolbarFrame.place(x=332.0, y=902.0, width=1110.0, height=50.0)
         self.toolbar = NavigationToolbar2Tk(
             self.plot_canvas, self.toolbarFrame)
         self.toolbar.update()
 
-        self.plot.plot([1, 2, 3, 4, 5], [1, 2, 3, 4, 5], label="test")
-        self.plot.legend()
         self.plot_canvas.draw()
 
         self.canvas.create_rectangle(
@@ -123,7 +115,7 @@ class PcapMode(BasePage):
 
         for file in self.dataframe.columns:
             lineFrame = Frame(self.frame)
-            toggle_button = Checkbutton(lineFrame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<45}',
+            toggle_button = Checkbutton(lineFrame, text=f'{self.dataframe_line_attributes[file]["title"][:30]:<40}',
                                         variable=self.dataframe_line_attributes[file]["toggle_variable"],
                                         onvalue=True, offvalue=False,
                                         command=self.update_plot)
@@ -140,6 +132,12 @@ class PcapMode(BasePage):
             rename_button.pack(side="left", anchor="w")
             lineFrame.place(
                 x=0.0, y=0.0 + (self.dataframe.columns.get_loc(file) * 50), width=300, height=40.0)
+
+        if len(self.dataframe.columns) == 0:
+            # Write text on self.Frame
+            text = tk.Label(self.frame, text="No pcap\n selected",
+                            font=("Inter Medium", 20 * -1))
+            text.place(x=0, y=50, width=300, height=40.0)
 
     def redraw_middle_menu_side(self):
         self.frame.destroy()
@@ -172,26 +170,47 @@ class PcapMode(BasePage):
         }
 
     def get_values_from_pcap(self, file_path):
-        values = []
+        # TODO: Store values in dataframe
+        # TODO: Check that the values are not already in the dataframe
+
+        delays = []
+        switch_ids = []
+        values = {}
+
+        last_time = None
 
         for packet in PcapReader(file_path):
+            if not last_time:
+                last_time = packet.time
+            else:
+                bandwidth = packet.len / (packet.time - last_time)
+                last_time = packet.time
+                values["Bandwidth"] = values.get("Bandwidth", []) + [bandwidth]
+            
             if packet.getlayer(layers.inet.TCP) is None:
                 continue
 
             switch_id, delay = self.get_values_from_packet(packet)
 
-            if self.settings.get("application") == "Delay":
-                if delay:
-                    values.append(delay)
-            elif self.settings.get("application") == "Path completeness":
-                if switch_id:
-                    values.append(switch_id)
-                    print(switch_id)
+            if switch_id is None or delay is None:
+                continue
 
-        print(values[:40])
-        if self.settings.get("application") == "Path completeness":
-            values = self.calculate_path_completeness(values)
+            if switch_id in EXPECTED_SEQUENCE:
+                switch_ids.append(switch_id)
+            
+            if delay != 0:
+                delays.append(delay)
 
+        if self.settings["application"]["Path completeness"]:
+            values["Path completeness"] = self.calculate_path_completeness(
+                switch_ids)
+
+        if self.settings["application"]["Delay"]:
+            values["Delay"] = delays
+
+        window_size = 20
+        values["Estimated throughput"] = [sum(values["Bandwidth"][i:i+window_size])/window_size for i in range(0, len(values["Bandwidth"]) - window_size, 1)]
+        del values["Bandwidth"]
         return values
 
     def get_values_from_packet(self, packet):
@@ -233,6 +252,7 @@ class PcapMode(BasePage):
             else:
                 broken_cycles += 1
                 last_num = values.pop(0)
+
                 while len(values) > 0 and EXPECTED_SEQUENCE.index(values[0]) >= EXPECTED_SEQUENCE.index(last_num):
                     last_num = values.pop(0)
 
@@ -242,29 +262,31 @@ class PcapMode(BasePage):
         return output
 
     def update_plot(self):
-        self.plot.clear()
-
-        if self.settings.get("application") == "Delay":
-            self.ecdf.clear()
+        for metric in self.plots:
+            self.plots[metric].clear()
 
         for file in self.dataframe.columns:
             if self.dataframe_line_attributes[file]["toggle_variable"].get():
                 values = self.get_values_from_pcap(file)
 
-                self.plot.plot(
-                    values, label=self.dataframe_line_attributes[file]["title"])
-                self.plot.set_xlabel("Packet #")
+                for metric in values:
+                    plot_config = self.settings["plot_config"][metric]
 
-                if self.settings.get("application") == "Delay":
-                    self.ecdf.hist(values, cumulative=True, density=True, bins=1000, histtype='step',
-                                   label=f'ECDF {self.dataframe_line_attributes[file]["title"]}')
-                    self.ecdf.set_xlabel("Delay (ns)")
-                    self.ecdf.set_ylabel("ECDF")
-                    self.ecdf.legend()
-                    self.plot_canvas.draw_idle()
-                    self.plot_canvas.flush_events()
+                    if self.settings["plot_config"][metric].get("post_processor"):
+                        x, y = self.settings["plot_config"][metric]["post_processor"](
+                            values[metric])
+                        self.plots[metric].plot(
+                            x, y, label=self.dataframe_line_attributes[file]["title"])
+                    else:
+                        self.plots[metric].plot(
+                            values[metric], label=self.dataframe_line_attributes[file]["title"])
 
-        self.plot.legend()
+                    self.plots[metric].set_title(plot_config.get("title"))
+                    self.plots[metric].set_xlabel(plot_config.get("xlabel"))
+                    self.plots[metric].set_ylabel(plot_config.get("ylabel"))
+                    self.plots[metric].legend()
+
+        self.plot_figure.tight_layout()
         self.plot_canvas.draw_idle()
         self.plot_canvas.flush_events()
 
