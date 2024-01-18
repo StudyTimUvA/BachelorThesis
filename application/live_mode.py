@@ -5,6 +5,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 from scapy.all import AsyncSniffer, conf, IP, TCP
 from plots import assign_plots
+from apscheduler.schedulers.background import BackgroundScheduler
+import os
+import time
 
 # Set the default interface
 conf.iface = "lo"
@@ -22,6 +25,14 @@ class LiveMode(BasePage):
 
         self.controller = controller
         self.settings = settings
+        
+        self.last_throughput = self.get_rx_bytes_from_system()
+        self.throughput_time = time.time()
+        
+        if self.settings["application"]["Estimated throughput"]:
+            scheduler = BackgroundScheduler()
+            scheduler.add_job(self._update_throughput_values, 'interval', seconds=1)
+            scheduler.start()
 
         self.canvas = Canvas(
             self.root,
@@ -167,14 +178,15 @@ class LiveMode(BasePage):
             prn=self.update_plot, store=0, filter=self.sniffing_filter)
         self.sniffer.start()
 
-    def update_plot(self, packet):
-        if not packet.haslayer(TCP):
-            return
+    def update_plot(self, packet, force_update=False):
+        if packet:
+            if not packet.haslayer(TCP):
+                return
+        
+            self.update_values_from_packet(packet)
+            self.number_packets_received += 1
 
-        self.update_values_from_packet(packet)
-        self.number_packets_received += 1
-
-        if self.number_packets_received % 5 == 0 and self.number_packets_received > 0:
+        if (self.number_packets_received % 5 == 0 and self.number_packets_received > 0) or force_update:
             # Clear plot, draw each plot again
             for metric, figure in self.plots.items():
                 if metric not in self.data_points:
@@ -203,12 +215,13 @@ class LiveMode(BasePage):
         method_by_setting = {
             "Delay": self._update_delay_values_from_packet,
             "Path completeness": self._update_path_completeness_values,
-            "Estimated throughput": self._update_throughput_values
+            "Estimated throughput": lambda packet: packet  # Define an empty lambda function
         }
 
         for metric in self.settings["application"]:
             if self.settings["application"][metric]:
                 method_by_setting[metric](packet)
+
 
     def _update_delay_values_from_packet(self, packet):
         delay = -1
@@ -299,7 +312,23 @@ class LiveMode(BasePage):
             (total_complete_cycles + total_broken_cycles)
         )
 
-        print(self.data_points["Path completeness"])
+    def get_rx_bytes_from_system(self):
+        return int(os.popen("cat /sys/class/net/lo/statistics/rx_bytes").read().replace("\n", ""))
 
-    def _update_throughput_values(self, packet):
-        ...
+    def _update_throughput_values(self):
+        # Get throughput from system
+        bytes_received = self.get_rx_bytes_from_system()
+        read_time = time.time()
+
+        # Calculate throughput
+        throughput = (bytes_received - self.last_throughput) / (read_time - self.throughput_time)
+        self.data_points["Estimated throughput"] = self.data_points.get("Estimated throughput", [])
+        self.data_points["Estimated throughput"].append(throughput)
+
+        # Update last throughput and time
+        self.last_throughput = bytes_received
+        self.throughput_time = read_time
+
+        # # Manually update plot, only for when no INT packets are received
+        # self.update_plot(None, True)
+
