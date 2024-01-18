@@ -5,7 +5,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 from scapy.all import AsyncSniffer, conf, IP, TCP
 from plots import assign_plots
-import numpy as np
 
 # Set the default interface
 conf.iface = "lo"
@@ -299,7 +298,7 @@ class LiveMode(BasePage):
             total_complete_cycles /
             (total_complete_cycles + total_broken_cycles)
         )
-        
+
         print(self.data_points["Path completeness"])
 
     def _update_throughput_values(self, packet):

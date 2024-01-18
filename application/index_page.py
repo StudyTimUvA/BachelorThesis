@@ -3,7 +3,7 @@ This file contains the class for the index page.
 """
 
 import tkinter as tk
-from tkinter import StringVar, BooleanVar, OptionMenu, Checkbutton, Button
+from tkinter import BooleanVar, Checkbutton, Button
 from PIL import ImageTk, Image
 from base_page import BasePage
 import numpy as np
@@ -70,11 +70,16 @@ class IndexPage(BasePage):
                                  text=texts[i], font=("Inter Medium", 20 * -1),
                                  bg="#D8DEE9", activebackground="#D8DEE9")
             button.place(x=506.0 + distances[i], y=290.0)
-            
-        self.settings["plot_config"] = {"Delay": {}, "Path completeness": {}, "Estimated throughput": {}}
-        self.settings["plot_config"]["Delay"] = {"title": "Delay ecdf", "ylabel": "Probability", "xlabel": "Delay (ns)", "post_processor": lambda x: (np.sort(x), np.linspace(0, 1, len(x)))}
-        self.settings["plot_config"]["Path completeness"] = {"title": "Path completeness", "ylabel": "Completeness (%)", "xlabel": ""}
-        self.settings["plot_config"]["Estimated throughput"] = {"title": "Estimated throughput", "ylabel": "Estimated throughput bit/sec", "xlabel": "Packet number #"}
+
+        self.settings["plot_config"] = {
+            "Delay": {}, "Path completeness": {}, "Estimated throughput": {}}
+        self.settings["plot_config"]["Delay"] = {"title": "Delay ecdf", "ylabel": "Probability",
+                                                 "xlabel": "Delay (ns)",
+                                                 "post_processor": lambda x: (np.sort(x), np.linspace(0, 1, len(x)))}
+        self.settings["plot_config"]["Path completeness"] = {
+            "title": "Path completeness", "ylabel": "Completeness (%)", "xlabel": ""}
+        self.settings["plot_config"]["Estimated throughput"] = {
+            "title": "Estimated throughput", "ylabel": "Estimated throughput bit/sec", "xlabel": "Packet number #"}
 
         self.canvas.create_rectangle(
             216.0,

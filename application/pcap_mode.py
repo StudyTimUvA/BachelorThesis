@@ -186,7 +186,7 @@ class PcapMode(BasePage):
                 bandwidth = packet.len / (packet.time - last_time)
                 last_time = packet.time
                 values["Bandwidth"] = values.get("Bandwidth", []) + [bandwidth]
-            
+
             if packet.getlayer(layers.inet.TCP) is None:
                 continue
 
@@ -197,7 +197,7 @@ class PcapMode(BasePage):
 
             if switch_id in EXPECTED_SEQUENCE:
                 switch_ids.append(switch_id)
-            
+
             if delay != 0:
                 delays.append(delay)
 
@@ -209,7 +209,10 @@ class PcapMode(BasePage):
             values["Delay"] = delays
 
         window_size = 20
-        values["Estimated throughput"] = [sum(values["Bandwidth"][i:i+window_size])/window_size for i in range(0, len(values["Bandwidth"]) - window_size, 1)]
+        values["Estimated throughput"] = [
+            sum(values["Bandwidth"][i:i+window_size])/window_size
+            for i in range(0, len(values["Bandwidth"]) - window_size, 1)
+        ]
         del values["Bandwidth"]
         return values
 

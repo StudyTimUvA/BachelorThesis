@@ -111,7 +111,8 @@ if not bool(args.iperf):
     # Write the itg file
     with open("parameters.itg", "w") as config_file:
         for flow in range(args.flows):
-            duration = int((starting_duration - (time_between_flows * flow)) * 1000)
+            duration = int(
+                (starting_duration - (time_between_flows * flow)) * 1000)
             delay = int((time_between_flows * flow) * 1000)
 
             config_file.write(
@@ -120,7 +121,7 @@ if not bool(args.iperf):
     # Start the ITGSend process
     print("Starting ITGSend")
     process = subprocess.Popen(["ITGSend", "parameters.itg"],
-                            stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
+                               stdout=subprocess.DEVNULL if not bool(args.verbose) else None)
     process.wait()
 
 # TODO: version of script using iperf3
