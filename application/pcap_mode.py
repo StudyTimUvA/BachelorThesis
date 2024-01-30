@@ -28,6 +28,9 @@ class PcapMode(BasePage):
             Image.open("assets/thrash_icon.png").resize((20, 20)))
         self.rename_image = ImageTk.PhotoImage(
             Image.open("assets/rename_icon.png").resize((20, 20)))
+        
+        self.settings["plot_config"]["Estimated throughput"] = {
+            "title": "Estimated throughput", "ylabel": "Estimated throughput bytes/sec", "xlabel": "Packet #"}
 
         self.canvas = Canvas(
             self.root,
@@ -110,7 +113,7 @@ class PcapMode(BasePage):
 
     def draw_side_menu_elements(self):
         # Place a frame for the above rectangles
-        self.frame = Frame(self.root)
+        self.frame = Frame(self.root, bg="#A8A6A6")
         self.frame.place(x=14.0, y=133.0, width=297.875, height=850.0)
 
         for file in self.dataframe.columns:
@@ -136,7 +139,7 @@ class PcapMode(BasePage):
         if len(self.dataframe.columns) == 0:
             # Write text on self.Frame
             text = tk.Label(self.frame, text="No pcap\n selected",
-                            font=("Inter Medium", 20 * -1))
+                            font=("Inter Medium", 20 * -1), bg="#A8A6A6")
             text.place(x=0, y=50, width=300, height=40.0)
 
     def redraw_middle_menu_side(self):
@@ -180,12 +183,14 @@ class PcapMode(BasePage):
         last_time = None
 
         for packet in PcapReader(file_path):
-            if not last_time:
-                last_time = packet.time
-            else:
-                bandwidth = packet.len / (packet.time - last_time)
-                last_time = packet.time
-                values["Bandwidth"] = values.get("Bandwidth", []) + [bandwidth]
+            if self.settings["application"]["Estimated throughput"]:
+                if not last_time:
+                    last_time = packet.time
+                else:
+                    bandwidth = packet.len / (packet.time - last_time)
+                    last_time = packet.time
+
+                    values["Bandwidth"] = values.get("Bandwidth", []) + [bandwidth]
 
             if packet.getlayer(layers.inet.TCP) is None:
                 continue
@@ -209,11 +214,13 @@ class PcapMode(BasePage):
             values["Delay"] = delays
 
         window_size = 20
-        values["Estimated throughput"] = [
-            sum(values["Bandwidth"][i:i+window_size])/window_size
-            for i in range(0, len(values["Bandwidth"]) - window_size, 1)
-        ]
-        del values["Bandwidth"]
+        if self.settings["application"]["Estimated throughput"]:
+            values["Estimated throughput"] = [
+                sum(values["Bandwidth"][i:i+window_size])/window_size
+                for i in range(0, len(values["Bandwidth"]) - window_size, 1)
+            ]
+
+            del values["Bandwidth"]
         return values
 
     def get_values_from_packet(self, packet):

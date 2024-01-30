@@ -182,10 +182,11 @@ class LiveMode(BasePage):
         if packet:
             if not packet.haslayer(TCP):
                 return
-        
+
             self.update_values_from_packet(packet)
             self.number_packets_received += 1
 
+        # TODO: Make this configurable
         if (self.number_packets_received % 5 == 0 and self.number_packets_received > 0) or force_update:
             # Clear plot, draw each plot again
             for metric, figure in self.plots.items():
@@ -227,13 +228,13 @@ class LiveMode(BasePage):
         delay = -1
 
         for option in packet.getlayer(TCP).options:
-            if option[0] == 114:
+            if option[0] == 114:  # 0x72
                 values = ''.join([hex(x)[2:].zfill(2) for x in option[1]])
 
                 switch_id = int(values[0:4], 16)
                 delay = int(values[4:20], 16)
 
-                if switch_id == 0 and delay == 0:
+                if switch_id != 4:
                     continue
 
                 break
@@ -243,7 +244,7 @@ class LiveMode(BasePage):
                 switch_id = int(values[0:4], 16)
                 delay = int(values[12:20], 16)
 
-                if switch_id == 0 and delay == 0:
+                if switch_id != 4:
                     continue
 
                 break
@@ -313,7 +314,7 @@ class LiveMode(BasePage):
         )
 
     def get_rx_bytes_from_system(self):
-        return int(os.popen("cat /sys/class/net/lo/statistics/rx_bytes").read().replace("\n", ""))
+        return int(os.popen(f"cat /sys/class/net/{conf.iface}/statistics/rx_bytes").read().replace("\n", ""))
 
     def _update_throughput_values(self):
         # Get throughput from system

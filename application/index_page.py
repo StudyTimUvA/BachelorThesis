@@ -62,10 +62,10 @@ class IndexPage(BasePage):
         )
 
         texts = ["Delay", "Path completeness", "Estimated throughput"]
-        variables = [BooleanVar(value=True) for _ in range(3)]
-        self.selected = {texts[i]: variables[i] for i in range(3)}
+        variables = [BooleanVar(value=True) for _ in range(len(texts))]
+        self.selected = {texts[i]: variables[i] for i in range(len(texts))}
         distances = [0, 100, 330]
-        for i in range(3):
+        for i in range(len(texts)):
             button = Checkbutton(self.root, variable=variables[i],
                                  text=texts[i], font=("Inter Medium", 20 * -1),
                                  bg="#D8DEE9", activebackground="#D8DEE9")
@@ -79,7 +79,7 @@ class IndexPage(BasePage):
         self.settings["plot_config"]["Path completeness"] = {
             "title": "Path completeness", "ylabel": "Completeness (%)", "xlabel": ""}
         self.settings["plot_config"]["Estimated throughput"] = {
-            "title": "Estimated throughput", "ylabel": "Estimated throughput bit/sec", "xlabel": "Packet number #"}
+            "title": "Estimated throughput", "ylabel": "Estimated throughput bytes/sec", "xlabel": "Time (s)"}
 
         self.canvas.create_rectangle(
             216.0,
